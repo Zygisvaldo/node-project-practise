@@ -1,5 +1,5 @@
 const express = require('express');
-const tourController = require('./../controllers/tourController.js');
+const tourController = require('./../controllers/tourController');
 // const {
 //   getAllTours,
 //   createTour,
@@ -10,7 +10,7 @@ const tourController = require('./../controllers/tourController.js');
 const router = express.Router();
 
 // this midleware function only runs if there is any params
-router.param('id', tourController.chechID);
+//router.param('id', tourController.chechID);
 
 router
   .route('/')

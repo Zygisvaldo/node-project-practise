@@ -9,6 +9,7 @@ const DB = process.env.DATABASE.replace(
   process.env.DATABASE_PASSWORD
 );
 
+// connection to db
 mongoose
   .connect(DB, {
     useNewUrlParser: true,
@@ -19,6 +20,7 @@ mongoose
     //console.log(con.connections);
     console.log('DB connection successful!')
   );
+
 
 // connecting config.env file to the node
 // running app only after the config ir required
