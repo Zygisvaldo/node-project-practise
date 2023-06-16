@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
-const app = require('./app');
 
 dotenv.config({ path: './config.env' });
+const app = require('./app');
 
 const DB = process.env.DATABASE.replace(
   '<PASSWORD>',
@@ -20,7 +20,6 @@ mongoose
     //console.log(con.connections);
     console.log('DB connection successful!')
   );
-
 
 // connecting config.env file to the node
 // running app only after the config ir required

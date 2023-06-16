@@ -9,6 +9,8 @@ const tourController = require('./../controllers/tourController');
 // } = require('./../controllers/tourController.js');
 const router = express.Router();
 
+router.route('/top-5-cheap').get(tourController.aliasTopTours, tourController.getAllTours);
+
 // this midleware function only runs if there is any params
 //router.param('id', tourController.chechID);
 
