@@ -197,3 +197,98 @@ exports.deleteTour = async (req, res) => {
     });
   }
 };
+
+// Aggregation pipeline
+exports.getTourStats = async (req, res) => {
+  try {
+    const stats = await Tour.aggregate([
+      // stages
+      {
+        $match: { ratingsAverage: { $gte: 4.5 } }
+      },
+      {
+        // group documents together by field or all
+        $group: {
+          //_id: null, // null = all
+          // field names are overwritten
+          _id: { $toUpper: '$difficulty' }, //
+          numTours: { $sum: 1 }, // 1 for each doc
+          numRatings: { $sum: '$ratingsQuantity' },
+          avgRating: { $avg: '$ratingsAverage' },
+          avgPrice: { $avg: '$price' },
+          minPrice: { $min: '$price' },
+          maxPrice: { $max: '$price' }
+        }
+      },
+      {
+        $sort: {
+          avgPrice: 1 // 1 for ascending
+        }
+      }
+    ]);
+    res.status(200).json({
+      status: 'success',
+      data: { stats }
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: 'fail',
+      message: 'Invalid data sent!'
+    });
+  }
+};
+
+exports.getMonthlyPlan = async (req, res) => {
+  try {
+    const year = req.params.year * 1; // 2022
+    const plan = await Tour.aggregate([
+      {
+        // unwind deconstructs array field from imput doc and output 1 doc for each element
+        $unwind: '$startDates'
+      },
+      {
+        $match: {
+          startDates: {
+            $gte: new Date(`${year}-01-01`),
+            $lte: new Date(`${year}-12-31`)
+          }
+        }
+      },
+      {
+        $group: {
+          // what to use to group docs: { operator(by what) : data extracted from field name}
+          // id: will be month extracted form startDates field
+          _id: { $month: '$startDates' },
+          numTourStarts: { $sum: 1 }, // for each doc 1
+          tours: { $push: '$name' } // push makes an array
+        }
+      },
+      {
+        // new field named month: with value of id
+        $addFields: { month: '$_id' }
+      },
+      {
+        $project: {
+          _id: 0 // id would not show up
+        }
+      },
+      {
+        $sort: {
+          numTourStarts: -1 // -1 descending
+        }
+      },
+      {
+        $limit: 12 // 12 outputs
+      }
+    ]);
+    res.status(200).json({
+      status: 'success',
+      data: { plan }
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: 'fail',
+      message: 'Invalid data sent!'
+    });
+  }
+};
