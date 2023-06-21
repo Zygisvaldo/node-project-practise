@@ -1,6 +1,13 @@
 const express = require('express');
-const userController = require('./../controllers/userController.js');
+const userController = require('./../controllers/userController');
+const authController = require('./../controllers/authController');
+
 const router = express.Router();
+
+// only post data for this route
+// .post(route, function)
+router.route('/signup').post(authController.signup);
+router.post('/login', authController.login);
 
 router
   .route('/')

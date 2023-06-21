@@ -5,7 +5,7 @@ const dotenv = require('dotenv');
 // Must be on the very top level!
 process.on('uncaughtException', err => {
   console.log('UNCAUGHT EXCEPTION! 💥 Shutting down..');
-  console.log(err.name);
+  console.log(err.name, err.message);
   process.exit(1);
 });
 //console.log(x); // is not defined
@@ -23,7 +23,8 @@ mongoose
   .connect(DB, {
     useNewUrlParser: true,
     useCreateIndex: true,
-    useFindAndModify: false
+    useFindAndModify: false,
+    useUnifiedTopology: true
   })
   .then(con =>
     //console.log(con.connections);
@@ -46,7 +47,7 @@ const server = app.listen(port, () => {
 // all promise rejections
 process.on('unhandledRejection', err => {
   console.log('UNHANDLED REJECTION! 💥 Shutting down..');
-  console.log(err.name);
+  console.log(err.name, err.message);
   // 1) shut down the server
   server.close(() => {
     // 2) shut down the app
