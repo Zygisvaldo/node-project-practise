@@ -1,9 +1,10 @@
+const crypto = require('crypto');
 const mongoose = require('mongoose');
 //const { default: isEmail } = require('validator/lib/isEmail');
 const validator = require('validator');
 const bcrypt = require('bcrypt');
-// 1) Shema
 
+// 1) Shema
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -23,6 +24,12 @@ const userSchema = new mongoose.Schema({
   photo: {
     type: String
   },
+  role: {
+    type: String,
+    // enum: restricted strings
+    enum: ['user', 'guide', 'lead-guide', 'admin'],
+    default: 'user'
+  },
   password: {
     type: String,
     required: [true, 'Please provide a password'],
@@ -39,7 +46,10 @@ const userSchema = new mongoose.Schema({
       },
       message: 'Passwords are not the same!'
     }
-  }
+  },
+  passwordChangedAt: Date,
+  passwordResetToken: String,
+  passwordResetExpires: Date
 });
 
 // Encrypting password before pre save
@@ -51,6 +61,15 @@ userSchema.pre('save', async function(next) {
   this.password = await bcrypt.hash(this.password, 12);
   // deleting passwordConfirm field so its not saved on DB
   this.passwordConfirm = undefined;
+  // setting passwordChangedAt to the current time
+  this.passwordChangedAt = Date.now();
+  next();
+});
+
+userSchema.pre('save', function(next) {
+  // exit is password was not changed or document is new
+  if (!this.isModified('password') || this.isNew) return next();
+  this.passwordChangedAt = Date.now() - 1000; // because token can be signed faster than saving to DB. So -1000ms to generate token after the saving document
   next();
 });
 
@@ -61,6 +80,37 @@ userSchema.methods.correctPassword = async function(
 ) {
   //this.password is not available so we pass in both to this function
   return await bcrypt.compare(candidatePassword, userPassword);
+};
+
+// Instance method to see if passward was recently changed
+userSchema.methods.changedPasswordAfter = async function(JWTTimestamp) {
+  if (this.passwordChangedAt) {
+    const changedTimeStamp = parseInt(
+      this.passwordChangedAt.getTime() / 1000,
+      10
+    );
+    //console.log(changedTimeStamp, JWTTimestamp);
+    // time when token was issued must be less than passward was changed to be ture
+    // token was issued before password change? true
+    return JWTTimestamp < changedTimeStamp;
+  }
+  // false - not changed
+  return false;
+};
+
+userSchema.methods.createPasswordResetToken = function() {
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  // encrypting resetToken
+  this.passwordResetToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+  console.log({ resetToken }, this.passwordResetToken); // will print key:value
+  // 10 min = 10m * 60s * 1000ms
+  this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+
+  // returning unencrypted token. So that the token sent by email is not the same as encryptedToken in DB
+  return resetToken;
 };
 
 // 2) Model created out of shema

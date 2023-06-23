@@ -37,6 +37,7 @@ const sendErrorProd = (err, res) => {
     });
     // Programing or unknown error:
   } else {
+    // All unhandled errors will show generic error message
     // 1) Log error
     console.error('ERROR 💥', err);
 
@@ -47,6 +48,11 @@ const sendErrorProd = (err, res) => {
     });
   }
 };
+
+const handleJWTError = () => new AppError('Invalid token. Please log in!', 401);
+
+const handleJWTExpirationError = () =>
+  new AppError('Token has exipred! Please log in again', 401);
 
 module.exports = (err, req, res, next) => {
   // console.log(err.stack); // will show us where the error happened
@@ -67,6 +73,9 @@ module.exports = (err, req, res, next) => {
       error = handleCastErrorDB(error);
     if (err.code === 11000) error = handleDublicateFieldsDB(error);
     if (err.name === 'ValidationError') error = handleValidationErrorDB(error);
+    if (err.name === 'JsonWebTokenError') error = handleJWTError();
+    if (err.name === 'TokenExpiredError') error = handleJWTExpirationError();
+
     sendErrorProd(error, res);
   }
 };
