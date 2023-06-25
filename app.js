@@ -1,5 +1,10 @@
 const express = require('express');
 const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet'); // for setting security HTTP headers
+const mongoSanitize = require('express-mongo-sanitize'); // express-mongo-sanitize
+const xss = require('xss-clean'); // xss-clean
+const hpp = require('hpp'); // hyper parameter pollution
 
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
@@ -8,14 +13,50 @@ const userRouter = require('./routes/userRoutes');
 
 const app = express();
 
-// 1. MIDLEWARES
+// 1.GLOBAL MIDLEWARES
+// Set security HTTP headers
+app.use(helmet());
+
+// Development logging
 //console.log(process.env.NODE_ENV);
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev')); // http request logger
 }
 
-app.use(express.json()); // adding midleware, handling the incoming request data
+// Limiting requests from same API
+const limiter = rateLimit({
+  max: 100, // 100 requests
+  windowMS: 60 * 60 * 1000, // 1h to ms
+  message: 'Too many requests. Try again in an hour!'
+});
 
+app.use('/api', limiter); // applying limiter only for url's that starts with /api
+
+// Body parser, reading data from body into req.body
+app.use(express.json({ limit: '10kb' })); // adding midleware, handling the incoming request data
+
+// Cleaning data against NoSQL query injection
+app.use(mongoSanitize()); // this looks at the request body and filter outs $ signs
+
+// Data sanitization agains xss cross site scipting such as "email" : {"$gt":""} in the body
+app.use(xss()); // will clean input form HTML code with JS code attached to it. Basically converts all HTML simbols
+
+// Prevent parameter pollution. Clears up query string
+app.use(
+  hpp({
+    whitelist: [
+      // whitelist is an array of properties where we allow duplicate String
+      'duration',
+      'retingsQuantity',
+      'ratingsAverage',
+      'maxGroupSize',
+      'difficulty',
+      'price'
+    ]
+  })
+);
+
+// Serving static files
 app.use(express.static(`${__dirname}/public`));
 
 // defining own midleware before route handlers
@@ -24,6 +65,7 @@ app.use(express.static(`${__dirname}/public`));
 //   next();
 // });
 
+// Test midleware
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
   //console.log(req.headers);

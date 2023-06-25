@@ -49,7 +49,12 @@ const userSchema = new mongoose.Schema({
   },
   passwordChangedAt: Date,
   passwordResetToken: String,
-  passwordResetExpires: Date
+  passwordResetExpires: Date,
+  active: {
+    type: Boolean,
+    default: true,
+    select: false
+  }
 });
 
 // Encrypting password before pre save
@@ -70,6 +75,15 @@ userSchema.pre('save', function(next) {
   // exit is password was not changed or document is new
   if (!this.isModified('password') || this.isNew) return next();
   this.passwordChangedAt = Date.now() - 1000; // because token can be signed faster than saving to DB. So -1000ms to generate token after the saving document
+  next();
+});
+
+// Regular expression of all strings starting with "find"
+// pre middle ware of User.findById() or simillar
+userSchema.pre(/^find/, function(next) {
+  // this points at the current query
+  // {$ne: false} instead of true, so instances with no active field would still be included
+  this.find({ active: { $ne: false } }); // adding a filter object
   next();
 });
 
@@ -105,7 +119,7 @@ userSchema.methods.createPasswordResetToken = function() {
     .createHash('sha256')
     .update(resetToken)
     .digest('hex');
-  console.log({ resetToken }, this.passwordResetToken); // will print key:value
+  //console.log({ resetToken }, this.passwordResetToken); // will print key:value
   // 10 min = 10m * 60s * 1000ms
   this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
 

@@ -14,6 +14,33 @@ const signToken = id => {
   });
 };
 
+// sending JWT as a String and a Cookie
+const createAndSendToken = (res, statusCode, user) => {
+  const token = signToken(user._id);
+  // Create and send a cookie
+  const cookieOptions = {
+    expires: new Date(
+      Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
+    ), // 90days to ms
+    //secure: true, // only will be sent in encrypted connection HTTPS
+    httpOnly: true // so cookie cannot be accessed on modified in anyway. Receives cookie, stores it and sends it automatically with every request
+  };
+  if (process.env.NODE_ENV === 'productions') cookieOptions.secure = true;
+  // name, value, cookieOptions
+  res.cookie('jwt', token, cookieOptions); // name is a unique identifier for the cookie
+
+  // remove the password from the output
+  user.password = undefined;
+
+  res.status(statusCode).json({
+    status: 'success',
+    token,
+    data: {
+      user
+    }
+  });
+};
+
 // new user
 exports.signup = catchAsync(async (req, res, next) => {
   //const newUser = await User.create(req.body);
@@ -33,16 +60,17 @@ exports.signup = catchAsync(async (req, res, next) => {
   //     expiresIn: process.env.JWT_EXPIRES_IN
   //   });
 
-  const token = signToken(newUser._id);
+  createAndSendToken(res, 201, newUser);
 
   // 3) sending respons with token
-  res.status(201).json({
-    status: 'success',
-    token,
-    data: {
-      user: newUser
-    }
-  });
+  // const token = signToken(newUser._id);
+  // res.status(201).json({
+  //   status: 'success',
+  //   token,
+  //   data: {
+  //     user: newUser
+  //   }
+  // });
 });
 
 // logging in user
@@ -70,11 +98,13 @@ exports.login = catchAsync(async (req, res, next) => {
   }
 
   // 3) If OK, send token to client
-  const token = signToken(user._id);
-  res.status(200).json({
-    status: 'success',
-    token
-  });
+  // const token = signToken(user._id);
+  // res.status(200).json({
+  //   status: 'success',
+  //   token
+  // });
+
+  createAndSendToken(res, 200, user);
 });
 
 //
@@ -183,13 +213,44 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
   await user.save();
-  
+
   // 3) update changedPasswordAt for the current user
-  
+
   // 4) log the user in/ send JWT
-  const token = signToken(user._id);
-  res.status(201).json({
-    status: 'success',
-    token
-  });
+  // const token = signToken(user._id);
+  // res.status(201).json({
+  //   status: 'success',
+  //   token
+  // });
+
+  createAndSendToken(res, 201, user);
+});
+
+exports.updatePassword = catchAsync(async (req, res, next) => {
+  // 1) Get user from db
+  const user = await User.findById(req.user.id).select('+password');
+
+  // 2) Check if posted password is correct
+  const passwordIsCorrect = await user.correctPassword(
+    req.body.passwordCurrent,
+    user.password
+  );
+  if (!passwordIsCorrect) {
+    return next(new AppError('Your currect password is wrong.', 401));
+  } // 401 unauthorized
+
+  // 3) If correct, update password
+  user.password = req.body.password;
+  user.passwordConfirm = req.body.passwordConfirm;
+  await user.save();
+  // User.findByID would not work!
+
+  // 4) log in by sending JWT
+  // const token = signToken(user._id);
+  // res.status(201).json({
+  //   status: 'success',
+  //   token
+  // });
+
+  createAndSendToken(res, 201, user);
 });
