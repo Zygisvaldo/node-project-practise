@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const slugify = require('slugify');
+//const User = require('./userModel');
 //const validator = require('validator');
 // schema
 const tourSchema = new mongoose.Schema(
@@ -83,7 +84,42 @@ const tourSchema = new mongoose.Schema(
     secretTour: {
       type: Boolean,
       default: false
-    }
+    },
+    // Geospacial data - GeoJSON
+    // to create this on mongo DB we need to specify and object with at least 2 parameters type & coordinates
+    startLocation: {
+      type: {
+        type: String,
+        default: 'Point', // or other geometries
+        enum: ['Point'] // all possible choises
+      },
+      coordinates: [Number], // array of numbers (longitude latitude) GeoJSON only! Mostly is (latitude&longitude)
+      address: String,
+      description: String
+    },
+    // embedded documents [{}] - by specifiening an array [] of documents {}, this will create a new documents inside the parent document (Tour)
+    // one object for each location
+    locations: [
+      {
+        type: {
+          type: String,
+          default: 'Point',
+          enum: ['Point']
+        },
+        coordinates: [Number],
+        address: String,
+        description: String,
+        day: Number // the day of the tour when this location will be reached
+      }
+    ],
+    //guides: Array // embeding users
+    guides: [
+      // referencing data. Populate(fill the data) happens in tour controller where we build our query (getTour). Or in query middleware .pre(/^find/, populateGuides)
+      {
+        type: mongoose.Schema.ObjectId,
+        ref: 'User' // model name
+      }
+    ]
   },
   {
     // schema options object
@@ -99,8 +135,17 @@ tourSchema.virtual('durationWeeks').get(function() {
   return this.duration / 7; // arrow fnc does not have this keyword
 });
 
+// Child referencing without saving data in the DB:
+// Virtual populate. Connecting models
+tourSchema.virtual('reviews', {
+  // connecting 2 model via common field (foreignField === localField)
+  ref: 'Review',
+  foreignField: 'tour', // name in the Review model where the ref of tour is held
+  localField: '_id' // where in this Tour model the same value is held (_id)
+});
+
 // Mongoose middlewares
-// Documents midleware: runs before .save() and .create() and not on .update()
+// DOCUMENT MIDDLEWARE: runs before .save() and .create() and not on .update()
 tourSchema.pre('save', function(next) {
   // pre - before doc is saved
   //console.log(this); // this point to a currently processed document
@@ -109,17 +154,15 @@ tourSchema.pre('save', function(next) {
   next();
 });
 
-tourSchema.pre('save', function(next) {
-  //console.log('Will save document...');
-  next();
-});
+// Embeding data into Tours model
+// tourSchema.pre('save', async function(next) {
+//   const guidesPromises = this.guides.map(async id => await User.findById(id)); // array of all promises. A promise for each id.
+//   // setting resolved promises as values. Complete documents of users.
+//   this.guides = await Promise.all(guidesPromises); // overwriting array of ID's with array of user documents
 
-// post doc middleware. after all pre functions
-tourSchema.post('save', function(doc, next) {
-  // post does not have this but instead has doc- finished document
-  //console.log(doc);
-  next();
-});
+//   //console.log('Will save document...');
+//   next();
+// });
 
 // Query midleware
 //tourSchema.pre('find', function(next) {
@@ -130,6 +173,21 @@ tourSchema.pre(/^find/, function(next) {
 
   // clock for calculating time it takes to execute
   this.start = Date.now();
+  next();
+});
+
+tourSchema.pre(/^find/, function(next) {
+  this.populate({
+    path: 'guides',
+    select: '-__v -passwordChangedAt'
+  });
+  next();
+});
+
+// post doc middleware. after all pre functions
+tourSchema.post('save', function(doc, next) {
+  // post does not have this but instead has doc- finished document
+  //console.log(doc);
   next();
 });
 

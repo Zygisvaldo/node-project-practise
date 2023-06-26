@@ -122,7 +122,12 @@ exports.getTour = catchAsync(async (req, res, next) => {
   // console.log(req.params); // data in the url are parameters
   //const id = req.params.id * 1;
   // Tour.findOne({ _id: req.params.id })
-  const tourData = await Tour.findById(req.params.id);
+  // .populate('guides') <- this will fill the guides field in the model
+  const tourData = await Tour.findById(req.params.id).populate('reviews');
+  // .populate({
+  //   path: 'guides',
+  //   select: '-__v -passwordChangedAt'
+  // });
   //const tourData = toursData[id];
 
   if (!tourData) {
@@ -131,7 +136,9 @@ exports.getTour = catchAsync(async (req, res, next) => {
 
   res.status(200).json({
     status: 'success',
-    data: { tour: tourData }
+    data: {
+      tour: tourData
+    }
   });
   // } catch (err) {
   //   res.status(404).json({

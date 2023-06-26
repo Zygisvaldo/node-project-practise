@@ -10,6 +10,7 @@ const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
 const tourRouter = require('./routes/tourRoutes');
 const userRouter = require('./routes/userRoutes');
+const reviewRouter = require('./routes/reviewRoutes');
 
 const app = express();
 
@@ -76,6 +77,7 @@ app.use((req, res, next) => {
 // using different route midlewares on diff routes
 app.use('/api/v1/tours', tourRouter); // mounting a new router on a route
 app.use('/api/v1/users', userRouter);
+app.use('/api/v1/reviews', reviewRouter);
 
 // 4. UNHANDLED ROUTES. all req that pass to this point and not in the 3rd section (above)
 // all http methods get, post ....
