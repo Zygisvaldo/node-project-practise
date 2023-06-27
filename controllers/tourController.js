@@ -14,7 +14,7 @@ exports.aliasTopTours = (req, res, next) => {
   next();
 };
 
-exports.getAllTours = factory.getAll(Tour);
+exports.getAllTours = factory.getAll(Tour); //, { path: 'reviews' });
 // catchAsync(
 //   async (req, res, next) => {
 //     // try {

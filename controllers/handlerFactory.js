@@ -80,6 +80,9 @@ exports.getAll = Model =>
       .limitFields()
       .paginate(); // chaining works because we return this
 
+    //if (popOptions) features.query = features.query.populate(popOptions);
+
+    //const doc = await features.query.explain() to see details
     const doc = await features.query;
     res.status(200).json({
       status: 'success',

@@ -33,6 +33,12 @@ exports.getAllUsers = factory.getAll(User);
 //   });
 // });
 
+exports.getMe = (req, res, next) => {
+  // seting URL param ID to User id from JWT (from authController.protect)
+  req.params.id = req.user.id;
+  next()
+};
+
 // update currenctly authenticaded user
 exports.updateMe = catchAsync(async (req, res, next) => {
   // 1) Create error if user post password data

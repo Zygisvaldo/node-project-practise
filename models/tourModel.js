@@ -127,6 +127,11 @@ const tourSchema = new mongoose.Schema(
     toObject: { virtuals: true }
   }
 );
+// Creating Index for better performance on most used queries:
+//tourSchema.index({ price: 1 }); // 1 for ascending order, -1 for dsc
+tourSchema.index({ price: 1, ratingsAverage: -1 }); // compound index, works also if query is with one field
+
+tourSchema.index({ slug: 1 });
 
 // Virtual properties
 // properties that can be calculated will be created each time on get request.
