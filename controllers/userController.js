@@ -2,6 +2,7 @@
 const User = require('./../models/userModel');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('../utils/appError');
+const factory = require('./handlerFactory');
 
 const filterObj = (obj, ...allowedFields) => {
   const newObj = {};
@@ -21,15 +22,16 @@ const filterObj = (obj, ...allowedFields) => {
 //   fs.readFileSync(`${__dirname}/../dev-data/data/users.json`, 'utf-8')
 // );
 
-exports.getAllUsers = catchAsync(async (req, res) => {
-  const users = await User.find();
+exports.getAllUsers = factory.getAll(User);
+// catchAsync(async (req, res) => {
+//   const users = await User.find();
 
-  res.status(200).json({
-    status: 'success',
-    results: users.length,
-    data: { users }
-  });
-});
+//   res.status(200).json({
+//     status: 'success',
+//     results: users.length,
+//     data: { users }
+//   });
+// });
 
 // update currenctly authenticaded user
 exports.updateMe = catchAsync(async (req, res, next) => {
@@ -66,29 +68,15 @@ exports.deleteMe = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.getUser = (req, res) => {
-  res.status(500).json({
-    status: 'error',
-    message: 'This route is not yet defined'
-  });
-};
-
+// Not needed because we have signUp user in the authController:
 exports.createUser = (req, res) => {
   res.status(500).json({
     status: 'error',
-    message: 'This route is not yet defined'
-  });
-};
-exports.updateUser = (req, res) => {
-  res.status(500).json({
-    status: 'error',
-    message: 'This route is not yet defined'
+    message: 'This route is not defined! Please use /signup instead!'
   });
 };
 
-exports.deleteUser = (req, res) => {
-  res.status(500).json({
-    status: 'error',
-    message: 'This route is not yet defined'
-  });
-};
+exports.getUser = factory.getOne(User);
+// Do NOT update passwords with this:
+exports.updateUser = factory.updateOne(User);
+exports.deleteUser = factory.deleteOne(User);

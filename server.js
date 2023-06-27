@@ -5,7 +5,7 @@ const dotenv = require('dotenv');
 // Must be on the very top level!
 process.on('uncaughtException', err => {
   console.log('UNCAUGHT EXCEPTION! 💥 Shutting down..');
-  console.log(err.name, err.message);
+  console.log(err);
   process.exit(1);
 });
 //console.log(x); // is not defined

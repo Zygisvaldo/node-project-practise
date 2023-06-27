@@ -1,6 +1,29 @@
 const express = require('express');
 const tourController = require('./../controllers/tourController');
 const authController = require('./../controllers/authController');
+//const reviewController = require('./../controllers/reviewController');
+const reviewRouter = require('./reviewRoutes');
+
+const router = express.Router();
+
+// accessing reviews through the tours
+// POST /tour/tourId/reviews and user ID will come from currently logedIn user through JWT. This is called nested routes. reviews are children of the tour.
+
+// GET /tour/tourID/reviews
+// GET /tour/tourID/reviews/reviewId
+
+// router
+//   .route('/:tourId/reviews') //  will be available through req.params.tourId
+//   .post(
+//     authController.protect,
+//     authController.restrictTo('user'),
+//     reviewController.createReview
+//   );
+
+// for this specific route we use another router
+router.use('/:tourId/reviews', reviewRouter); // redirecting to another router
+
+// Example of importing methods by name ----------------------------------
 // const {
 //   getAllTours,
 //   createTour,
@@ -8,7 +31,6 @@ const authController = require('./../controllers/authController');
 //   updateTour,
 //   deleteTour,
 // } = require('./../controllers/tourController.js');
-const router = express.Router();
 
 router
   .route('/top-5-cheap')
