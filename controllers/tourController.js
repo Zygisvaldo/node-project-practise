@@ -2,7 +2,7 @@
 const Tour = require('./../models/tourModel');
 //const APIFeatures = require('./../utils/apiFeatures');
 const catchAsync = require('./../utils/catchAsync');
-//const AppError = require('./../utils/appError');
+const AppError = require('./../utils/appError');
 const factory = require('./handlerFactory');
 
 // 5) Aliasing (for example most popular request)
@@ -318,4 +318,80 @@ exports.getMonthlyPlan = catchAsync(async (req, res, next) => {
   //     message: 'Invalid data sent!'
   //   });
   // }
+});
+
+// /tours-within/:distance/center/:latlng/unit/:unit
+// /tours-within/300/center/-40,45/unit/km
+exports.getToursWithin = catchAsync(async (req, res, next) => {
+  const { distance, latlng, unit } = req.params;
+  const [lat, lng] = latlng.split(',');
+  const radius = unit === 'mi' ? distance / 3963.2 : distance / 6378.1; // to get radians unit, we need to devide distance by radius of the earth
+
+  if (!lat || !lng) {
+    next(
+      new AppError(
+        'Please provide latitude and longitude in the format lat,lng.',
+        400
+      )
+    );
+  }
+  // GEOSPACIAL QUERY
+  // Find documents within startLocation(latlng) with radius(distance)
+  const filter = {
+    startLocation: { $geoWithin: { $centerSphere: [[lng, lat], radius] } }
+  };
+
+  const tours = await Tour.find(filter);
+
+  res.status(200).json({
+    status: 'success',
+    results: tours.length,
+    data: {
+      data: tours
+    }
+  });
+});
+
+// For getting distance from user to all tours
+// /distances/:latlng/unit/:unit
+exports.getDistances = catchAsync(async (req, res, next) => {
+  const { latlng, unit } = req.params;
+  const [lat, lng] = latlng.split(',');
+  const multiplier = unit === 'mi' ? 0.000621371 : 0.001;
+
+  if (!lat || !lng) {
+    next(
+      new AppError(
+        'Please provide latitude and longitude in the format lat,lng.',
+        400
+      )
+    );
+  }
+  // In order to do calculations MUST use aggregate pipeline which is called on the Model
+  const distances = await Tour.aggregate([
+    {
+      // $geoNear requires at least one GEOspacial INDEX: tourSchema.index({ startLocation: '2dsphere' })
+      $geoNear: {
+        // distances will be calculated from this point to all startLocations
+        near: { type: 'Point', coordinates: [lng * 1, lat * 1] },
+        // field where calculated distances will be stored
+        distanceField: 'distance', // meters
+        distanceMultiplier: multiplier // meters to km
+      }
+    },
+    {
+      // Selecting fields
+      $project: {
+        distance: 1,
+        name: 1
+      }
+    } 
+  ]);
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      data: distances
+    }
+  });
 });

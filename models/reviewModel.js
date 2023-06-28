@@ -38,6 +38,10 @@ const reviewSchema = new mongoose.Schema(
   }
 );
 
+// Creating a COMPOUND INDEX ({ index }, {options})
+// Each combination of tour and user must be unique (for creating only 1 review per tour from the same user)
+reviewSchema.index({ tour: 1, user: 1 }, { unique: true });
+
 // pre (find) -> all findById, findOne ....
 reviewSchema.pre(/^find/, function(next) {
   // this.populate({

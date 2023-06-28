@@ -45,6 +45,22 @@ router
     tourController.getMonthlyPlan
   );
 
+// GEOSPACIAL ENDPOINT
+// tours-within/:distance(distance selected) /center/:latlng(user coordinates) /unit/:unit(km or miles)
+router
+  //{ distance, latlng, unit } = req.params
+  .route('/tours-within/:distance/center/:latlng/unit/:unit')
+  .get(tourController.getToursWithin);
+
+// Best practise to specify URL:
+// /tours-within/300/center/-40,45/unit/km
+
+// Other practise:
+// /tours-within?distance=300&center=-40,45&unilt=km
+
+// Distance from a certain point (:latlng) to all tours
+router.route('/distances/:latlng/unit/:unit').get(tourController.getDistances);
+
 // this midleware function only runs if there is any params
 //router.param('id', tourController.chechID);
 
