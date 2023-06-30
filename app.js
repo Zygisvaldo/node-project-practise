@@ -1,3 +1,4 @@
+const path = require('path'); // to manipulate path names
 const express = require('express');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
@@ -5,16 +6,28 @@ const helmet = require('helmet'); // for setting security HTTP headers
 const mongoSanitize = require('express-mongo-sanitize'); // express-mongo-sanitize
 const xss = require('xss-clean'); // xss-clean
 const hpp = require('hpp'); // hyper parameter pollution
+const cookieParser = require('cookie-parser');
 
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
 const tourRouter = require('./routes/tourRoutes');
 const userRouter = require('./routes/userRoutes');
 const reviewRouter = require('./routes/reviewRoutes');
+const viewRouter = require('./routes/viewRoutes');
 
 const app = express();
 
+// Setting PUG template engine
+app.set('view engine', 'pug');
+//
+app.set('views', path.join(__dirname, 'views')); // ./views will join directory name with views. __dirname - because it allow to start app from any path.
+
 // 1.GLOBAL MIDLEWARES
+
+// Serving static files
+//app.use(express.static(`${__dirname}/public`));
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Set security HTTP headers
 app.use(helmet());
 
@@ -35,6 +48,9 @@ app.use('/api', limiter); // applying limiter only for url's that starts with /a
 
 // Body parser, reading data from body into req.body
 app.use(express.json({ limit: '10kb' })); // adding midleware, handling the incoming request data
+
+// Cookie parser
+app.use(cookieParser());
 
 // Cleaning data against NoSQL query injection
 app.use(mongoSanitize()); // this looks at the request body and filter outs $ signs
@@ -57,9 +73,6 @@ app.use(
   })
 );
 
-// Serving static files
-app.use(express.static(`${__dirname}/public`));
-
 // defining own midleware before route handlers
 // app.use((req, res, next) => {
 //   console.log('Hollo from the midleware 😊');
@@ -69,12 +82,13 @@ app.use(express.static(`${__dirname}/public`));
 // Test midleware
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
-  //console.log(req.headers);
+  console.log(req.cookies);
   next();
 });
 
 // 3. ROUTES
 // using different route midlewares on diff routes
+app.use('/', viewRouter);
 app.use('/api/v1/tours', tourRouter); // mounting a new router on a route
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/reviews', reviewRouter);

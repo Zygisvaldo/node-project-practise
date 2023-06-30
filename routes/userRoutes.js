@@ -6,8 +6,11 @@ const router = express.Router(); // mini app
 
 // only post data for this route
 // .post(route, function)
-router.route('/signup').post(authController.signup);
+//router.route('/signup').post(authController.signup);
+router.post('/signup', authController.signup);
 router.post('/login', authController.login);
+router.get('/logout', authController.logout);
+
 router.post('/forgotPassword', authController.forgotPassword);
 router.patch('/resetPassword/:token', authController.resetPassword);
 
