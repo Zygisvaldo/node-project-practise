@@ -1,9 +1,68 @@
+const multer = require('multer');
+const sharp = require('sharp');
 //const fs = require('fs');
 const Tour = require('./../models/tourModel');
 //const APIFeatures = require('./../utils/apiFeatures');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
 const factory = require('./handlerFactory');
+
+const multerStorage = multer.memoryStorage();
+
+const multerFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image')) {
+    cb(null, true);
+  } else {
+    cb(new AppError('Not an image! Only image files!', 400), false);
+  }
+};
+
+const upload = multer({
+  storage: multerStorage,
+  fileFilter: multerFilter
+});
+
+exports.uploadTourImages = upload.fields([
+  { name: 'imageCover', maxCount: 1 },
+  { name: 'images', maxCount: 3 }
+]);
+
+exports.resizeTourImages = catchAsync(async (req, res, next) => {
+  //console.log(req.files);
+  if (!req.files.imageCover || !req.files.images) return next();
+  // 1) Cover image
+  req.body.imageCover = `tour-${req.params.id}-${Date.now()}-cover.jpeg`;
+  await sharp(req.files.imageCover[0].buffer)
+    .resize(2000, 1333) // 3:2 ratio
+    .toFormat('jpeg')
+    .jpeg({
+      quality: 90
+    })
+    .toFile(`public/img/tours/${req.body.imageCover}`);
+
+  // putting imageCoverFileName on req.body.imageCover
+  // imageCover on schema
+  // req.body.imageCover = imageCoverFileName;
+
+  // 2) other images
+  req.body.images = [];
+  // async in the loop callback functions will not stop the next() outside the loop, so we need to await All Promises
+  await Promise.all(
+    req.files.images.map(async (file, i) => {
+      const fileName = `tour-${req.params.id}-${Date.now()}-${i + 1}.jpeg`;
+      await sharp(file.buffer)
+        .resize(2000, 1333) // 3:2 ratio
+        .toFormat('jpeg')
+        .jpeg({
+          quality: 90
+        })
+        .toFile(`public/img/tours/${fileName}`);
+      req.body.images.push(fileName);
+    })
+  );
+  //console.log(req.body);
+  next();
+});
 
 // 5) Aliasing (for example most popular request)
 // midleware will set(prefill) query object
@@ -385,7 +444,7 @@ exports.getDistances = catchAsync(async (req, res, next) => {
         distance: 1,
         name: 1
       }
-    } 
+    }
   ]);
 
   res.status(200).json({

@@ -49,6 +49,15 @@ app.use('/api', limiter); // applying limiter only for url's that starts with /a
 // Body parser, reading data from body into req.body
 app.use(express.json({ limit: '10kb' })); // adding midleware, handling the incoming request data
 
+// UR: parser
+// using middleware to parse data coming form a url, used when posting form data as HTTP method and encoding it in url body
+app.use(
+  express.urlencoded({
+    extended: true, // allows to pass more complex data
+    limit: '10kb'
+  })
+);
+
 // Cookie parser
 app.use(cookieParser());
 
@@ -82,7 +91,7 @@ app.use(
 // Test midleware
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
-  console.log(req.cookies);
+  //console.log(req.cookies);
   next();
 });
 

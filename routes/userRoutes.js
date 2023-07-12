@@ -25,11 +25,16 @@ router.get(
   userController.getUser
 );
 
+router.patch(
+  '/updateMe',
+  userController.uploadUserPhoto,
+  userController.resizeUserPhoto,
+  userController.updateMe
+);
+router.delete('/deleteMe', userController.deleteMe);
+
 // Only admins can access routes below
 router.use(authController.restrictTo('admin'));
-
-router.patch('/updateMe', userController.updateMe);
-router.delete('/deleteMe', userController.deleteMe);
 router.route('/').get(userController.getAllUsers);
 
 router
